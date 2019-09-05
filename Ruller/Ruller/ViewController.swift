@@ -23,7 +23,10 @@ class ViewController: UIViewController, UIGestureRecognizerDelegate {
     let width = UIScreen.main.bounds.size.width
     let height: CGFloat = 100.0
     
-    var yBias = 0
+    let minX: CGFloat = 0
+    let minY: CGFloat = 0
+    let maxX: CGFloat = UIScreen.main.bounds.size.width
+    let maxY: CGFloat = UIScreen.main.bounds.size.height
     
     var panInRec = false
     var rotateInRec = false
@@ -136,7 +139,7 @@ class ViewController: UIViewController, UIGestureRecognizerDelegate {
         
         
         
-        
+        order()
         
         rec.removeFromSuperlayer()
         let rectangle = UIBezierPath()
@@ -178,9 +181,6 @@ class ViewController: UIViewController, UIGestureRecognizerDelegate {
 
         let centerPoint = CGPoint(x: (secondPoint.x + firstPoint.x) / 2, y: (firstPoint.y + secondPoint.y) / 2)
         
-        
-        
-        
         var additionalXBias = abs(height / 2 * cos((.pi / 2) - angle))
         if angle >= 0 {
             additionalXBias = -additionalXBias
@@ -190,14 +190,25 @@ class ViewController: UIViewController, UIGestureRecognizerDelegate {
         print("X BIAS: \(-(width / 2 * cos(angle)) + additionalXBias)")
         print("Y BIAS: \(width / 2 * sin(angle) - additionalYBias)")
         
-        topLeftPoint.x = centerPoint.x - width / 2 * cos(angle) + additionalXBias
-        topLeftPoint.y = centerPoint.y + width / 2 * sin(angle) - additionalYBias
-        topRightPoint.x = topLeftPoint.x + width * cos(angle)
-        topRightPoint.y = topLeftPoint.y - width * sin(angle)
+        let fLenght = sqrt((centerPoint.x) * (centerPoint.x) + (centerPoint.y) * (centerPoint.y))
+        
+        let sLenght = sqrt((centerPoint.x - maxX) * (centerPoint.x - maxX) + (centerPoint.y - maxY) * (centerPoint.y - maxY))
+        
+        let ffLenght = sqrt((centerPoint.x - maxX) * (centerPoint.x - maxX) + (centerPoint.y) * (centerPoint.y))
+        
+        let ssLenght = sqrt((centerPoint.x) * (centerPoint.x) + (centerPoint.y - maxY) * (centerPoint.y - maxY))
+        
+        let length = max(fLenght, sLenght, ffLenght, ssLenght) * 2
+        
+        
+        topLeftPoint.x = centerPoint.x - length / 2 * cos(angle) + additionalXBias
+        topLeftPoint.y = centerPoint.y + length / 2 * sin(angle) - additionalYBias
+        topRightPoint.x = topLeftPoint.x + length * cos(angle)
+        topRightPoint.y = topLeftPoint.y - length * sin(angle)
         bottomLeftPoint.x = topLeftPoint.x + height * cos((.pi / 2) - angle)
         bottomLeftPoint.y = topLeftPoint.y + height * sin((.pi / 2) - angle)
-        bottomRightPoint.x = bottomLeftPoint.x + width * cos(angle)
-        bottomRightPoint.y = bottomLeftPoint.y - width * sin(angle)
+        bottomRightPoint.x = bottomLeftPoint.x + length * cos(angle)
+        bottomRightPoint.y = bottomLeftPoint.y - length * sin(angle)
         
         
         rec.removeFromSuperlayer()
@@ -213,8 +224,12 @@ class ViewController: UIViewController, UIGestureRecognizerDelegate {
         gestureRecognizer.rotation = 0
         
         
+       
         
         
+        
+        
+        order()
         circle.removeFromSuperlayer()
         let circlePath = UIBezierPath(arcCenter: centerPoint, radius: CGFloat(20), startAngle: CGFloat(0), endAngle: CGFloat(Double.pi * 2), clockwise: true)
         circle.path = circlePath.cgPath
@@ -263,7 +278,11 @@ class ViewController: UIViewController, UIGestureRecognizerDelegate {
         
     }
     
-    func orger() {
+    func order() {
+       
+    }
+    
+    func nearestPoint(to point: inout CGPoint, with angle: CGFloat) {
         
         
         
