@@ -17,6 +17,7 @@ class ViewController: UIViewController, UIGestureRecognizerDelegate {
     
     var rec = CAShapeLayer()
     var circle = CAShapeLayer()
+    var label = CATextLayer()
     
     let rullerPOintRec = CAShapeLayer()
     
@@ -59,7 +60,7 @@ class ViewController: UIViewController, UIGestureRecognizerDelegate {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        view.layer.addSublayer(rec)
         for i in 0...Int(UIScreen.main.bounds.size.height / cm) * 2 + 1 {
             let horizontalRec = UIBezierPath()
             let hRec = CAShapeLayer()
@@ -155,7 +156,6 @@ class ViewController: UIViewController, UIGestureRecognizerDelegate {
     }
     
     func redrawRulerLayer() {
-        rec.removeFromSuperlayer()
         let rectangle = UIBezierPath()
         rectangle.move(to: topLeftPoint)
         rectangle.addLine(to: topRightPoint)
@@ -165,7 +165,6 @@ class ViewController: UIViewController, UIGestureRecognizerDelegate {
         rec.path = rectangle.cgPath
         rec.fillColor = UIColor.lightGray.cgColor
         rec.opacity = 0.4
-        view.layer.addSublayer(rec)
     }
     
     func calculateLenght(for centerPoint: CGPoint) -> CGFloat {
@@ -192,6 +191,8 @@ class ViewController: UIViewController, UIGestureRecognizerDelegate {
             if pointInRec(firstPoint), pointInRec(secondPoint) {
                 print("rotate in rec")
                 rotateInRec = true
+                view.layer.addSublayer(circle)
+                circle.addSublayer(label)
             }
         }
         
@@ -228,23 +229,33 @@ class ViewController: UIViewController, UIGestureRecognizerDelegate {
         redrawRulerLayer()
         gestureRecognizer.rotation = 0
         
-        circle.removeFromSuperlayer()
-        let circlePath = UIBezierPath(arcCenter: centerPoint, radius: CGFloat(20), startAngle: CGFloat(0), endAngle: CGFloat(Double.pi * 2), clockwise: true)
+        let circlePath = UIBezierPath(arcCenter: centerPoint, radius: 20, startAngle: CGFloat(0), endAngle: CGFloat(Double.pi * 2), clockwise: true)
         circle.path = circlePath.cgPath
         
         circle.fillColor = UIColor.clear.cgColor
-        circle.strokeColor = UIColor.green.cgColor
-        circle.lineWidth = 3.0
+        circle.strokeColor = UIColor.black.cgColor
+        circle.lineWidth = 1.0
         
-        view.layer.addSublayer(circle)
+        order(centerPoint)
+        let text = NSString(string: "\(abs(Int(angle * 180 / .pi)))°")
+        let fontAttributes = [NSAttributedString.Key.font: UIFont.systemFont(ofSize: 20)]
+        let size = text.size(withAttributes: fontAttributes)
+        label.fontSize = 20
+        label.foregroundColor = UIColor.black.cgColor
+        label.string = text
+        label.frame = CGRect(x: centerPoint.x - size.width / 2, y: centerPoint.y - size.height / 2 , width: size.width, height: size.height)
+        
         
         if gestureRecognizer.state == UIGestureRecognizer.State.ended {
             circle.removeFromSuperlayer()
+            label.removeFromSuperlayer()
         }
         print("-----------------------------")
-        order(centerPoint)
+        
     }
     
+    
+
     func pointInRec(_ point: CGPoint) -> Bool {
         let r1 = (topLeftPoint.x - point.x) * (topRightPoint.y - topLeftPoint.y) - (topRightPoint.x - topLeftPoint.x) * (topLeftPoint.y - point.y)
         let r2 = (topRightPoint.x - point.x) * (bottomRightPoint.y - topRightPoint.y) - (bottomRightPoint.x - topRightPoint.x) * (topRightPoint.y - point.y)
