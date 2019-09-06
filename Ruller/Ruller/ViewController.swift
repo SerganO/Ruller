@@ -343,25 +343,27 @@ class ViewController: UIViewController, UIGestureRecognizerDelegate {
         var cm: CGFloat = 65.0
         var mm: CGFloat = 6.5
         if let pointsPerCentimeter = UIScreen.pointsPerCentimeter {
-            count = Int(rullerLenght / pointsPerCentimeter)
+            //count = Int(rullerLenght / pointsPerCentimeter)
             cm = pointsPerCentimeter
             mm = cm / 10
+            count = Int(rullerLenght / mm)
         }
         
         let point1 = CGPoint(x: centerPoint.x - height/2 * cos((.pi / 2) - angle), y: centerPoint.y - height/2 * sin((.pi / 2) - angle))
         let point2 = CGPoint(x: centerPoint.x + height/2 * cos((.pi / 2) - angle), y: centerPoint.y + height/2 * sin((.pi / 2) - angle))
         print(centerPoint)
-        for i in 0...Int(rullerLenght / CGFloat(count)) / 2 {
-            drawLine(for: point1, with: cm * CGFloat(i) - 1.5, 3, height / 3)
-            drawLine(for: point1, with: cm * -CGFloat(i) + 1.5, -3, height / 3)
-            drawLine(for: point2, with: cm * CGFloat(i) - 1.5, 3, -height / 3)
-            drawLine(for: point2, with: cm * -CGFloat(i) + 1.5, -3, -height / 3)
-            for j in 1...9 {
-                drawLine(for: point1, with: (CGFloat(i) * cm - 1.0) + ( CGFloat(j) * mm), 2, height / 4)
-                drawLine(for: point1, with: (-CGFloat(i) * cm + 1.0) - ( -CGFloat(j) * mm), -2, height / 4)
-                drawLine(for: point2, with: (CGFloat(i) * cm - 1.0) + ( CGFloat(j) * mm), 2, -height / 4)
-                drawLine(for: point2, with: (-CGFloat(i) * cm + 1.0) - ( -CGFloat(j) * mm), -2, -height / 4)
+        
+        for i in 0...(count / 2) {
+            var size = height / 5
+            if i % 10 == 0 {
+                size = height / 3
+            } else if i % 5 == 0 {
+                size = height / 4
             }
+            drawLine(for: point1, with: mm * CGFloat(i) - 1.5, 3, size)
+            drawLine(for: point1, with: mm * -CGFloat(i) + 1.5, -3, size)
+            drawLine(for: point2, with: mm * CGFloat(i) - 1.5, 3, -size)
+            drawLine(for: point2, with: mm * -CGFloat(i) + 1.5, -3, -size)
         }
        
     }
