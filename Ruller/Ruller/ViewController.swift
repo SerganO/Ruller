@@ -29,10 +29,12 @@ class ViewController: UIViewController, UIGestureRecognizerDelegate {
     let maxX: CGFloat = UIScreen.main.bounds.size.width
     let maxY: CGFloat = UIScreen.main.bounds.size.height
     
-     var angle: CGFloat = 0.0
+    var angle: CGFloat = 0.0
     
     var panInRec = false
     var rotateInRec = false
+    
+    var lastCenterPoint = CGPoint()
     
     var cm: CGFloat {
         return UIScreen.pointsPerCentimeter ?? 65.0
@@ -98,10 +100,9 @@ class ViewController: UIViewController, UIGestureRecognizerDelegate {
         let gesture = UIPanGestureRecognizer(target: self, action: #selector(move(gestureRecognizer:)))
         gesture.delegate = self
         let rotateGesture = UIRotationGestureRecognizer(target: self, action: #selector(rotate(gestureRecognizer:)))
-
+        
         rotateGesture.delegate = self
         
-        let rectangle = UIBezierPath()
         topLeftPoint = CGPoint(x: 0, y: 0)
         bottomLeftPoint = CGPoint(x: 0, y:  height)
         topRightPoint = CGPoint(x: width, y: 0)
@@ -112,7 +113,9 @@ class ViewController: UIViewController, UIGestureRecognizerDelegate {
         view.addGestureRecognizer(rotateGesture)
         
         let centerPoint = CGPoint(x: topLeftPoint.x + rullerLenght / 2, y: topLeftPoint.y + height / 2)
+        lastCenterPoint = centerPoint
         order(centerPoint)
+        
     }
     
     @objc func move(gestureRecognizer: UIPanGestureRecognizer) {
@@ -124,15 +127,17 @@ class ViewController: UIViewController, UIGestureRecognizerDelegate {
             locationOfBeganTap = gestureRecognizer.location(in: view)
             panInRec = false
             if pointInRec(locationOfBeganTap){
-                print("IN REC")
+                print("== START PAN IN REC ==")
                 panInRec = true
             }
         }
         guard panInRec else {
+            drawOnView(gestureRecognizer)
             return
         }
         
         let centerPoint = gestureRecognizer.location(in: view)
+        lastCenterPoint = centerPoint
         let length = calculateLenght(for: centerPoint)
         var additionalXBias = abs(height / 2 * cos((.pi / 2) - angle))
         if angle >= 0 {
@@ -153,6 +158,50 @@ class ViewController: UIViewController, UIGestureRecognizerDelegate {
         gestureRecognizer.setTranslation(CGPoint(x: 0, y: 0), in: gestureRecognizer.view!)
         
         order(centerPoint)
+    }
+    
+    var drawPoint = CGPoint()
+    var drawInArea = false
+    func drawOnView(_ gestureRecognizer: UIPanGestureRecognizer) {
+        if gestureRecognizer.state == UIGestureRecognizer.State.began {
+            drawPoint = gestureRecognizer.location(in: view)
+            drawInArea = pointInArea(drawPoint)
+        } else {
+            let inAngle = -atan2(gestureRecognizer.location(in: view).y - drawPoint.y, gestureRecognizer.location(in: view).x - drawPoint.x)
+            var secondPoint = gestureRecognizer.location(in: view)
+            if drawInArea {
+                if inAngle != angle {
+                    
+                    let x = gestureRecognizer.translation(in: view).x
+                    let y = gestureRecognizer.translation(in: view).y
+                    let lenght = sqrt(x*x + y*y)
+                    var xSign: CGFloat = x * cos(angle) >= 0 ? 1 : -1
+                    var ySign: CGFloat = y * sin(angle) <= 0 ? 1 : -1
+                    let degree = abs(angle) * 180 / .pi
+                    if xSign * ySign < 0 {
+                        if degree >= 45 && degree <= 135 {
+                            xSign = ySign
+                        } else {
+                            ySign = xSign
+                        }
+                    }
+                    secondPoint.x = drawPoint.x + lenght * cos(angle) * xSign
+                    secondPoint.y = drawPoint.y - lenght * sin(angle) * ySign
+                }
+            }
+            let line = CAShapeLayer()
+            let linePath = UIBezierPath()
+            linePath.move(to: drawPoint)
+            linePath.addLine(to: secondPoint)
+            line.path = linePath.cgPath
+            line.strokeColor = UIColor.black.cgColor
+            line.lineWidth = 5
+            line.lineJoin = CAShapeLayerLineJoin.round
+            self.view.layer.addSublayer(line)
+            drawPoint = secondPoint
+            gestureRecognizer.setTranslation(CGPoint(x: 0, y: 0), in: gestureRecognizer.view!)
+        }
+        
     }
     
     func redrawRulerLayer() {
@@ -180,7 +229,7 @@ class ViewController: UIViewController, UIGestureRecognizerDelegate {
         return (max(fLenght, sLenght, ffLenght, ssLenght) * 2)
     }
     
-   
+    
     
     @objc func rotate(gestureRecognizer: UIRotationGestureRecognizer) {
         let firstPoint = gestureRecognizer.location(ofTouch: 0, in: view)
@@ -189,7 +238,7 @@ class ViewController: UIViewController, UIGestureRecognizerDelegate {
         if gestureRecognizer.state == UIGestureRecognizer.State.began {
             rotateInRec = false
             if pointInRec(firstPoint), pointInRec(secondPoint) {
-                print("rotate in rec")
+                print("== STSRT ROTATE IN REC ==")
                 rotateInRec = true
                 view.layer.addSublayer(circle)
                 circle.addSublayer(label)
@@ -200,12 +249,11 @@ class ViewController: UIViewController, UIGestureRecognizerDelegate {
             return
         }
         
-        print("-----------------------------")
         
         angle = -atan2(secondPoint.y - firstPoint.y, secondPoint.x - firstPoint.x)
-        print("ANGLE: \(angle * 180 / .pi)")
-
+        
         let centerPoint = CGPoint(x: (secondPoint.x + firstPoint.x) / 2, y: (firstPoint.y + secondPoint.y) / 2)
+        lastCenterPoint = centerPoint
         
         var additionalXBias = abs(height / 2 * cos((.pi / 2) - angle))
         if angle >= 0 {
@@ -250,12 +298,38 @@ class ViewController: UIViewController, UIGestureRecognizerDelegate {
             circle.removeFromSuperlayer()
             label.removeFromSuperlayer()
         }
-        print("-----------------------------")
         
     }
     
+    func pointInArea(_ point: CGPoint) -> Bool {
+        var additionalXBias = abs((height / 2 + 50) * cos((.pi / 2) - angle))
+        if angle >= 0 {
+            additionalXBias = -additionalXBias
+        }
+        let additionalYBias = (height / 2 + 50) * sin((.pi / 2) - angle)
+        var TL = CGPoint()
+        var TR = CGPoint()
+        var BL = CGPoint()
+        var BR = CGPoint()
+        TL.x = lastCenterPoint.x - (rullerLenght + 100) / 2 * cos(angle) + additionalXBias
+        TL.y = lastCenterPoint.y + (rullerLenght + 100) / 2 * sin(angle) - additionalYBias
+        TR.x = TL.x + (rullerLenght + 100) * cos(angle)
+        TR.y = TL.y - (rullerLenght + 100) * sin(angle)
+        BL.x = TL.x + (height + 100) * cos((.pi / 2) - angle)
+        BL.y = TL.y + (height + 100) * sin((.pi / 2) - angle)
+        BR.x = BL.x + (rullerLenght + 100) * cos(angle)
+        BR.y = BL.y - (rullerLenght + 100) * sin(angle)
+        
+        
+        let r1 = (TL.x - point.x) * (TR.y - TL.y) - (TR.x - TL.x) * (TL.y - point.y)
+        let r2 = (TR.x - point.x) * (BR.y - TR.y) - (BR.x - TR.x) * (TR.y - point.y)
+        let r3 = (BR.x - point.x) * (BL.y - BR.y) - (BL.x - BR.x) * (BR.y - point.y)
+        let r4 = (BL.x - point.x) * (TL.y - BL.y) - (TL.x - BL.x) * (BL.y - point.y)
+        
+        return (r1 >= 0 && r2 >= 0 && r3 >= 0 && r4 >= 0) || (r1 <= 0 && r2 <= 0 && r3 <= 0 && r4 <= 0)
+    }
     
-
+    
     func pointInRec(_ point: CGPoint) -> Bool {
         let r1 = (topLeftPoint.x - point.x) * (topRightPoint.y - topLeftPoint.y) - (topRightPoint.x - topLeftPoint.x) * (topLeftPoint.y - point.y)
         let r2 = (topRightPoint.x - point.x) * (bottomRightPoint.y - topRightPoint.y) - (bottomRightPoint.x - topRightPoint.x) * (topRightPoint.y - point.y)
@@ -284,7 +358,7 @@ class ViewController: UIViewController, UIGestureRecognizerDelegate {
         let point1 = CGPoint(x: centerPoint.x - height/2 * cos((.pi / 2) - angle), y: centerPoint.y - height/2 * sin((.pi / 2) - angle))
         let point2 = CGPoint(x: centerPoint.x + height/2 * cos((.pi / 2) - angle), y: centerPoint.y + height/2 * sin((.pi / 2) - angle))
         
-        for i in 0...(count / 2) {
+        for i in 0...(count / 2) + 1 {
             var size = height / 6
             if i % 10 == 0 {
                 size = height / 3
@@ -296,7 +370,7 @@ class ViewController: UIViewController, UIGestureRecognizerDelegate {
             drawLine(for: point2, with: mm * CGFloat(i) - 1.5, 3, -size)
             drawLine(for: point2, with: mm * -CGFloat(i) + 1.5, -3, -size)
         }
-       
+        
     }
     
     
@@ -314,7 +388,7 @@ class ViewController: UIViewController, UIGestureRecognizerDelegate {
         rectangle.addLine(to: BR)
         rectangle.addLine(to: BL)
         rectangle.close()
-       
+        
         let layer = CAShapeLayer()
         layer.path = rectangle.cgPath
         layer.fillColor = UIColor.black.cgColor
