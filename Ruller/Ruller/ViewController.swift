@@ -37,7 +37,8 @@ class ViewController: UIViewController, UIGestureRecognizerDelegate {
     var panInRec = false
     var rotateInRec = false
     
-    
+    var isRotate = false
+    var isPan = false
     
     var cm: CGFloat {
         return UIScreen.pointsPerCentimeter ?? 65.0
@@ -129,9 +130,12 @@ class ViewController: UIViewController, UIGestureRecognizerDelegate {
     @objc func move(gestureRecognizer: UIPanGestureRecognizer) {
         var locationOfBeganTap: CGPoint
         
+        guard !isRotate else {
+            return
+        }
         
         if gestureRecognizer.state == UIGestureRecognizer.State.began {
-            
+            isPan = true
             locationOfBeganTap = gestureRecognizer.location(in: view)
             panInRec = false
             if pointInRec(locationOfBeganTap){
@@ -166,13 +170,23 @@ class ViewController: UIViewController, UIGestureRecognizerDelegate {
         gestureRecognizer.setTranslation(CGPoint(x: 0, y: 0), in: gestureRecognizer.view!)
         
         drawLines(centerPoint)
+        
+        if gestureRecognizer.state == .ended {
+            isPan = false
+        }
     }
     
     @objc func rotate(gestureRecognizer: UIRotationGestureRecognizer) {
+        guard !isPan else {
+            return
+        }
+        
+        
         let firstPoint = gestureRecognizer.location(ofTouch: 0, in: view)
         let secondPoint = gestureRecognizer.location(ofTouch: 1, in: view)
         
         if gestureRecognizer.state == UIGestureRecognizer.State.began {
+            isRotate = true
             rotateInRec = false
             if pointInRec(firstPoint), pointInRec(secondPoint) {
                 print("== START ROTATE IN REC ==")
@@ -229,6 +243,7 @@ class ViewController: UIViewController, UIGestureRecognizerDelegate {
         
         
         if gestureRecognizer.state == UIGestureRecognizer.State.ended {
+            isRotate = false
             circle.removeFromSuperlayer()
             label.removeFromSuperlayer()
         }
